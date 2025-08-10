@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Login</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="header-title">Secure Login</h1>
+            <p id="header-subtitle">Verify your identity with OTP authentication</p>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step active" id="step1">1</div>
+            <div class="step" id="step2">2</div>
+            <div class="step" id="step3">3</div>
+        </div>
+
+        <div class="form-container">
+            <!-- Step 1: Send OTP -->
+            <div class="form-step active" id="send-otp-step">
+                <form id="send-otp-form">
+                    <div class="form-group">
+                        <label class="form-label" for="mobile">Mobile Number</label>
+                        <div class="input-container">
+                            <i class="fas fa-phone input-icon"></i>
+                            <input type="tel" id="mobile" class="form-input" placeholder="Enter your mobile number" maxlength="10" required>
+                        </div>
+                    </div>
+                    <div id="result-step1" class="result"></div>
+                    <button type="submit" id="send-btn" class="btn btn-primary"><span>Send OTP</span></button>
+                </form>
+            </div>
+
+            <!-- Step 2: Verify OTP -->
+            <div class="form-step" id="verify-otp-step">
+                <form id="verify-otp-form">
+                    <div class="form-group">
+                        <label class="form-label">Enter Verification Code</label>
+                        <div class="otp-inputs">
+                            <input type="text" class="otp-digit" maxlength="1" required>
+                            <input type="text" class="otp-digit" maxlength="1" required>
+                            <input type="text" class="otp-digit" maxlength="1" required>
+                            <input type="text" class="otp-digit" maxlength="1" required>
+                            <input type="text" class="otp-digit" maxlength="1" required>
+                            <input type="text" class="otp-digit" maxlength="1" required>
+                        </div>
+                    </div>
+                    <div id="result-step2" class="result"></div>
+                    <div class="timer" id="timer">Resend OTP in <span id="countdown">60</span>s</div>
+                    <div class="form-group">
+                        <button type="button" class="back-btn" onclick="goBack()">Back</button>
+                        <button type="submit" id="verify-btn" class="btn btn-primary"><span>Verify OTP</span></button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 3: Registration -->
+            <div class="form-step" id="registration-step">
+                <form id="registration-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="fullName">Full Name</label>
+                            <div class="input-container">
+                                <i class="fas fa-user input-icon"></i>
+                                <input type="text" id="fullName" class="form-input" placeholder="Enter your full name" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="email">Email Address</label>
+                            <div class="input-container">
+                                <i class="fas fa-envelope input-icon"></i>
+                                <input type="email" id="email" class="form-input" placeholder="Enter your email" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="dateOfBirth">Date of Birth</label>
+                            <div class="input-container">
+                                <i class="fas fa-calendar input-icon"></i>
+                                <input type="date" id="dateOfBirth" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="gender">Gender</label>
+                            <div class="input-container">
+                                <i class="fas fa-venus-mars input-icon"></i>
+                                <select id="gender" class="form-input" required>
+                                    <option value="" disabled selected>Select Gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="address">Address</label>
+                        <div class="input-container">
+                            <i class="fas fa-home input-icon"></i>
+                            <input type="text" id="address" class="form-input" placeholder="Enter your address" required>
+                        </div>
+                    </div>
+                    <div id="result-step3" class="result"></div>
+                    <div class="form-group">
+                        <button type="button" class="back-btn" onclick="goBack()">Back</button>
+                        <button type="submit" id="register-btn" class="btn btn-primary"><span>Complete Registration</span></button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 4: Welcome -->
+            <div class="form-step" id="welcome-step">
+                <div class="welcome-message">
+                    <h2>Welcome Back!</h2>
+                    <p>You have been successfully logged in to your account.</p>
+                    <div class="user-info">
+                        <p><strong>Phone:</strong> <span id="user-phone"></span></p>
+                        <p><strong>Name:</strong> <span id="user-name"></span></p>
+                        <p><strong>Email:</strong> <span id="user-email"></span></p>
+                    </div>
+                    <button class="btn btn-success" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="floating-elements">
+            <div class="floating-circle"></div>
+            <div class="floating-circle"></div>
+            <div class="floating-circle"></div>
+        </div>
+    </div>
+    <script src="js/otp.js"></script>
+</body>
+</html>

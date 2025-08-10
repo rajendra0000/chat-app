@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+    <link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+    <div class="floating-elements">
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+    </div>
+
+    <div class="chat-container">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="user-profile">
+                    <div class="profile-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="profile-info">
+                        <h4 id="current-user-name">Loading...</h4>
+                        <span class="status-indicator online"></span>
+                        <span class="status-text">Online</span>
+                    </div>
+                </div>
+                <div class="sidebar-actions">
+                    <button class="action-btn" id="new-chat-btn" title="New Chat">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="action-btn" onclick="showSettings()" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button class="action-btn" onclick="logout()" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="search-container">
+                <div class="search-input-container">
+                    <input type="text" class="search-input" placeholder="Search conversations..." id="search-input">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+            </div>
+
+            <div class="chat-list-container">
+                <div class="chat-list" id="chat-list">
+                    <div class="loading-conversations">
+                        <div class="spinner"></div>
+                        <p>Loading conversations...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-chat" id="main-chat">
+            <div class="chat-header">
+                <button class="action-btn sidebar-toggle-btn" id="sidebar-toggle-btn" title="Toggle Sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="chat-info">
+                    <div class="chat-avatar" id="chat-header-avatar" style="display: none;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="chat-details">
+                        <h4 id="chat-user-name"></h4>
+                        <span class="chat-status" id="chat-status"></span>
+                        <span class="group-status" id="group-status"></span>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button class="action-btn" onclick="showChatInfo()" title="Chat Info">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                    <button class="action-btn" onclick="clearChat()" title="Clear Chat">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="welcome-screen" id="welcome-screen">
+                <div class="welcome-content">
+                    <div class="welcome-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h2>Welcome to Your Chat</h2>
+                    <p>Select a conversation or start a new one.</p>
+                </div>
+            </div>
+
+            <div class="chat-window" id="chat-window" style="display: none;">
+                <div class="messages-container" id="messages-container">
+                    <div class="messages-list" id="messages-list">
+                    </div>
+                </div>
+
+                <div class="message-input-container">
+                    <div class="message-input-wrapper">
+                        <button class="attachment-btn" id="attachment-btn" title="Attach File">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <div class="input-container">
+                            <textarea class="message-input" id="message-input" placeholder="Type a message..." rows="1"></textarea>
+                            <button class="emoji-btn" title="Add Emoji">
+                                <i class="fas fa-smile"></i>
+                            </button>
+                        </div>
+                        <button class="send-btn" id="send-btn" title="Send Message">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="typing-indicator" id="typing-indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="newChatModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Start New Chat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="search-users-container">
+                        <input type="text" class="form-control search-users" placeholder="Search users by phone number..." id="search-users-input">
+                        <div class="search-results" id="search-results">
+                            <div class="no-results">Enter a phone number to search for users.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="js/chat.js"></script>
+</body>
+</html>
