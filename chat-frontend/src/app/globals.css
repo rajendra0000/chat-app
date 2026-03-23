@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+/* ==============================
+   Design Tokens (CSS Variables)
+   ============================== */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-sent-bubble: var(--sent-bubble);
+  --color-received-bubble: var(--received-bubble);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-ai-accent: var(--ai-accent);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+/* ==============================
+   Light Mode
+   ============================== */
+:root {
+  --background: #f4f7fc;
+  --foreground: #1a202c;
+  --sidebar: #ffffff;
+  --surface: #ffffff;
+  --accent: #4a55ff;
+  --accent-hover: #3d47e6;
+  --sent-bubble: #4a55ff;
+  --received-bubble: #f0f2f5;
+  --border: #e2e8f0;
+  --muted: #f1f5f9;
+  --muted-foreground: #718096;
+  --primary: #4a55ff;
+  --primary-foreground: #ffffff;
+  --destructive: #ef4444;
+  --success: #22c55e;
+  --ai-accent: #14b8a6;
+
+  --ring: #4a55ff;
+  --input: #e2e8f0;
+  --card: #ffffff;
+  --card-foreground: #1a202c;
+  --popover: #ffffff;
+  --popover-foreground: #1a202c;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1a202c;
+}
+
+/* ==============================
+   Dark Mode
+   ============================== */
+.dark {
+  --background: #0f1117;
+  --foreground: #e8eaed;
+  --sidebar: #16181d;
+  --surface: #1e2028;
+  --accent: #6b73ff;
+  --accent-hover: #5a62e8;
+  --sent-bubble: #5a62e8;
+  --received-bubble: #242730;
+  --border: #2d3039;
+  --muted: #1e2028;
+  --muted-foreground: #8b92a5;
+  --primary: #6b73ff;
+  --primary-foreground: #ffffff;
+  --destructive: #f87171;
+  --success: #4ade80;
+  --ai-accent: #2dd4bf;
+
+  --ring: #6b73ff;
+  --input: #2d3039;
+  --card: #1e2028;
+  --card-foreground: #e8eaed;
+  --popover: #1e2028;
+  --popover-foreground: #e8eaed;
+  --secondary: #242730;
+  --secondary-foreground: #e8eaed;
+}
+
+/* ==============================
+   Base Styles
+   ============================== */
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Fix iOS rubber-band scroll / safe area */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Support iOS safe areas (notch / home bar) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ==============================
+   Scrollbar
+   ============================== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
+}
