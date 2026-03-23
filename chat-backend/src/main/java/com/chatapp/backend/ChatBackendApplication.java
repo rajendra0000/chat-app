@@ -12,7 +12,9 @@ public class ChatBackendApplication {
         // Fix JVM timezone: PostgreSQL 15 rejects deprecated "Asia/Calcutta", expects "Asia/Kolkata"
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"));
 
-        Dotenv dotenv = Dotenv.configure().load();
+        Dotenv dotenv = Dotenv.configure()
+                .ignoreIfMissing()
+                .load();
         dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
         SpringApplication.run(ChatBackendApplication.class, args);
     }
