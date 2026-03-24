@@ -32,19 +32,26 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.ResponseEntity;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
- * OTP service using Spring JavaMailSender (Gmail SMTP).
- *
+ * OTP service using Brevo REST API.
  * FLOW
  * ────
  * 1. User provides phone (E.164) + email
- * 2. OTP generated, stored in Redis keyed by phone, sent via Gmail SMTP
+ * 2. OTP generated, stored in Redis keyed by phone, sent via Brevo API
  * 3. User enters OTP; verified against Redis; JWT issued
  *
  * Phone = identity key. Email = delivery channel only.
@@ -67,11 +74,14 @@ public class OtpServiceImpl implements OtpService {
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailsService customUserDetailsService;
     private final ChatMetrics chatMetrics;
-    private final JavaMailSender mailSender;
 
-    /** Gmail address used as the sender (matches spring.mail.username) */
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    /** Brevo API Key */
+    @Value("${brevo.api-key}")
+    private String brevoApiKey;
+
+    /** Email address used as the sender */
+    @Value("${brevo.sender-email}")
+    private String senderEmail;
 
     /** App name shown in OTP email subject/body */
     @Value("${app.name:SkibidiChat}")
@@ -84,8 +94,7 @@ public class OtpServiceImpl implements OtpService {
                           RoleRepository roleRepository,
                           AuthenticationManager authenticationManager,
                           CustomUserDetailsService customUserDetailsService,
-                          ChatMetrics chatMetrics,
-                          JavaMailSender mailSender) {
+                          ChatMetrics chatMetrics) {
         this.redisTemplate = redisTemplate;
         this.userRepository = userRepository;
         this.jwtGenerator = jwtGenerator;
@@ -93,11 +102,10 @@ public class OtpServiceImpl implements OtpService {
         this.authenticationManager = authenticationManager;
         this.customUserDetailsService = customUserDetailsService;
         this.chatMetrics = chatMetrics;
-        this.mailSender = mailSender;
     }
 
     /**
-     * Sends an OTP to the given email address via Gmail SMTP.
+     * Sends an OTP to the given email address via Brevo HTTP API.
      *
      * @param phone E.164 phone number (e.g. "+919876543210") — serves as user identifier
      * @param email Email address where OTP is delivered
@@ -129,10 +137,10 @@ public class OtpServiceImpl implements OtpService {
             redisTemplate.opsForValue().increment(rateLimitKey, 1);
             redisTemplate.expire(rateLimitKey, 1, TimeUnit.HOURS);
 
-            // Send OTP via Gmail SMTP
+            // Send OTP via Brevo API
             sendOtpEmail(email, otp);
 
-            logger.info("OTP sent to email={} for phone={} via Gmail SMTP", maskEmail(email), phone);
+            logger.info("OTP sent to email={} for phone={} via Brevo", maskEmail(email), phone);
             chatMetrics.incrementOtpRequests();
             return "OTP sent to your email successfully";
 
@@ -153,15 +161,38 @@ public class OtpServiceImpl implements OtpService {
             "Use sendOtp(phone, email) — email is required for OTP delivery");
     }
 
-    private void sendOtpEmail(String toEmail, String otp) throws Exception {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+    private void sendOtpEmail(String toEmail, String otp) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("api-key", brevoApiKey);
 
-        helper.setFrom(fromEmail);
-        helper.setTo(toEmail);
-        helper.setSubject(appName + " — Your Verification Code");
-        helper.setText(buildOtpEmailHtml(otp), true); // true = isHtml
-        mailSender.send(message);
+        Map<String, Object> sender = new HashMap<>();
+        sender.put("name", appName);
+        sender.put("email", senderEmail);
+
+        Map<String, String> recipient = new HashMap<>();
+        recipient.put("email", toEmail);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("sender", sender);
+        body.put("to", Collections.singletonList(recipient));
+        body.put("subject", appName + " — Your Verification Code");
+        body.put("htmlContent", buildOtpEmailHtml(otp));
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                logger.error("Brevo API error: {}", response.getBody());
+                throw new RuntimeException("Email delivery failed to " + maskEmail(toEmail));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to send email via Brevo: {}", e.getMessage());
+            throw new RuntimeException("Email delivery failed", e);
+        }
     }
 
     private String buildOtpEmailHtml(String otp) {
