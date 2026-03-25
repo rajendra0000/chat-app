@@ -77,9 +77,9 @@ public class DatabaseSeeder implements CommandLineRunner {
         adminRole = entityManager.merge(adminRole);
 
         // Step 2: Create users (10 USERs and 1 ADMIN)
-        List<String> phones = List.of("9116914178", "7014123863", "1234567890", "0987654321", "5555555555",
-                "1112223333", "4445556666", "7778889999", "1011121314", "1516171819",
-                "9998887777");
+        List<String> phones = List.of("+15550001001", "+15550001002", "+15550001003", "+15550001004", "+15550001005",
+                "+15550001006", "+15550001007", "+15550001008", "+15550001009", "+15550001010",
+                "+15550001011");
         List<String> names = List.of("Alice Smith", "Bob Johnson", "Charlie Brown", "David Wilson", "Eve Davis",
                 "Frank Miller", "Grace Lee", "Hannah Kim", "Ian Clark", "Julia Adams",
                 "Admin User");

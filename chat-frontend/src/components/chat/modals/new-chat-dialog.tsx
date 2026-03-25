@@ -122,7 +122,7 @@ export function NewChatDialog({ open, onOpenChange, conversations }: NewChatDial
           <Input
             placeholder="Enter phone number..."
             value={query}
-            onChange={(e) => setQuery(e.target.value.replace(/\D/g, ""))}
+            onChange={(e) => setQuery(e.target.value.replace(/[^\d+]/g, ""))}
             className="pl-9 h-10 rounded-xl"
             inputMode="numeric"
             autoFocus
