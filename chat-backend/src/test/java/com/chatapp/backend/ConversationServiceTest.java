@@ -87,11 +87,18 @@ class ConversationServiceTest {
         otherMember.setChat(chat);
         otherMember.setUser(otherUser);
 
+        // Provide a real latest message so the PRIVATE chat is NOT filtered out
+        ChatMessage latestMessage = new ChatMessage();
+        latestMessage.setId(1);
+        latestMessage.setChatMember(member);
+        latestMessage.setContent("Hello");
+        latestMessage.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+
         when(userRepository.findByPhone("1234567890")).thenReturn(Optional.of(testUser));
         when(chatMemberRepository.findByUserId(1)).thenReturn(List.of(member));
         when(chatMemberRepository.findByChat_IdAndUser_IdNot(1, 1)).thenReturn(List.of(otherMember));
         when(chatMemberRepository.findByChat_Id(1)).thenReturn(List.of(member, otherMember));
-        when(chatMessageRepository.findFirstByChatMember_ChatOrderByCreatedAtDesc(chat)).thenReturn(null);
+        when(chatMessageRepository.findFirstByChatMember_ChatOrderByCreatedAtDesc(chat)).thenReturn(latestMessage);
         when(chatMessageRepository.countByChatMember_ChatAndChatMember_UserIdNotAndReadFalse(chat, 1)).thenReturn(0L);
 
         List<ConversationDTO> result = conversationService.getConversation("1234567890");
@@ -99,6 +106,63 @@ class ConversationServiceTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("Other User", result.get(0).getName());
+    }
+
+    @Test
+    void getConversation_privateWithNoMessages_isHidden() {
+        Chat chat = new Chat();
+        chat.setId(2);
+        chat.setChatType(ChatType.PRIVATE);
+        chat.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+
+        ChatMember member = new ChatMember();
+        member.setChat(chat);
+        member.setUser(testUser);
+
+        ChatMember otherMember = new ChatMember();
+        otherMember.setChat(chat);
+        otherMember.setUser(otherUser);
+
+        when(userRepository.findByPhone("1234567890")).thenReturn(Optional.of(testUser));
+        when(chatMemberRepository.findByUserId(1)).thenReturn(List.of(member));
+        when(chatMemberRepository.findByChat_IdAndUser_IdNot(2, 1)).thenReturn(List.of(otherMember));
+        // No latest message → should be hidden
+        when(chatMessageRepository.findFirstByChatMember_ChatOrderByCreatedAtDesc(chat)).thenReturn(null);
+
+        List<ConversationDTO> result = conversationService.getConversation("1234567890");
+
+        assertNotNull(result);
+        // PRIVATE chat with no messages must NOT appear
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void getConversation_showsNewGroupWithNoMessages() {
+        Chat groupChat = new Chat();
+        groupChat.setId(3);
+        groupChat.setChatType(ChatType.GROUP);
+        groupChat.setTitle("My Team");
+        groupChat.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+
+        ChatMember creatorMember = new ChatMember();
+        creatorMember.setChat(groupChat);
+        creatorMember.setUser(testUser);
+
+        when(userRepository.findByPhone("1234567890")).thenReturn(Optional.of(testUser));
+        when(chatMemberRepository.findByUserId(1)).thenReturn(List.of(creatorMember));
+        when(chatMemberRepository.findByChat_IdAndUser_IdNot(3, 1)).thenReturn(List.of());
+        when(chatMemberRepository.findByChat_Id(3)).thenReturn(List.of(creatorMember));
+        // No messages yet — group should STILL appear (the core fix)
+        when(chatMessageRepository.findFirstByChatMember_ChatOrderByCreatedAtDesc(groupChat)).thenReturn(null);
+        when(chatMessageRepository.countByChatMember_ChatAndChatMember_UserIdNotAndReadFalse(groupChat, 1)).thenReturn(0L);
+
+        List<ConversationDTO> result = conversationService.getConversation("1234567890");
+
+        assertNotNull(result);
+        // GROUP with no messages MUST appear in the sidebar
+        assertEquals(1, result.size());
+        assertEquals("My Team", result.get(0).getName());
+        assertEquals("GROUP", result.get(0).getChatType());
     }
 
     @Test

@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Users } from "lucide-react";
 import { useCreateGroup } from "@/hooks/use-conversations";
 import { useChatStore } from "@/store/chat-store";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 interface CreateGroupDialogProps {
@@ -29,6 +30,7 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
   const [title, setTitle] = useState("");
   const createGroup = useCreateGroup();
   const setActiveConversation = useChatStore((s) => s.setActiveConversation);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +39,7 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
     try {
       const newGroup = await createGroup.mutateAsync({ title: title.trim() });
       setActiveConversation(newGroup.id);
+      router.push(`/chat/${newGroup.id}`);
       onOpenChange(false);
       setTitle("");
       toast.success(`Group "${title.trim()}" created!`);

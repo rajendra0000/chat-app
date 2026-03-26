@@ -124,18 +124,21 @@ public class ConversationServiceImpl implements ConversationService {
             String otherUserStatus = otherMembers.isEmpty() ? "Unknown" : otherMembers.get(0).getUser().getStatus();
             ChatMessage latestMessage = chatMessageRepository.findFirstByChatMember_ChatOrderByCreatedAtDesc(chat);
 
-            // #6: Hide completely empty conversations (no messages at all)
-            if (latestMessage == null) continue;
+            // #6: Hide empty PRIVATE conversations (no messages) but show empty GROUP chats
+            // Newly created groups have no messages yet and must still appear in the sidebar.
+            if (latestMessage == null && chat.getChatType() != ChatType.GROUP) continue;
 
-            String lastMessageContent = latestMessage.getContent();
-            String timestamp = latestMessage.getCreatedAt().toString();
+            String lastMessageContent = latestMessage != null ? latestMessage.getContent() : "";
+            String timestamp = latestMessage != null
+                    ? latestMessage.getCreatedAt().toString()
+                    : chat.getCreatedAt().toString();
             long unreadCount = chatMessageRepository.countByChatMember_ChatAndChatMember_UserIdNotAndReadFalse(chat, userId);
             ConversationDTO dto = new ConversationDTO();
             dto.setId(chat.getId());
             dto.setName(otherUserName);
-            dto.setLastMessage(latestMessage.isDeleted() ? "This message was deleted" : lastMessageContent);
+            dto.setLastMessage(latestMessage != null && latestMessage.isDeleted() ? "This message was deleted" : lastMessageContent);
             dto.setTimestamp(timestamp);
-            dto.setDeleted(latestMessage.isDeleted());
+            dto.setDeleted(latestMessage != null && latestMessage.isDeleted());
             dto.setUnreadCount((int) unreadCount);
             dto.setStatus(otherUserStatus);
             List<Integer> participantIds = chatMemberRepository.findByChat_Id(chat.getId())
@@ -254,13 +257,21 @@ public class ConversationServiceImpl implements ConversationService {
         }
         logger.debug("User {} is a member of conversation {}", userId, conversationId);
 
-        // Fetch paginated messages
+        // Step 1: Paginate WITHOUT @EntityGraph (avoids HHH90003004 full-table-in-memory fetch)
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<ChatMessage> messages = chatMessageRepository.findByChatMember_Chat_IdOrderByCreatedAtDesc(conversationId, pageable);
         logger.debug("Fetched {} messages for conversation {}", messages.getTotalElements(), conversationId);
 
-        // Map to DTOs
-        return messages.map(message -> {
+        // Step 2: Batch-load attachments only for this page's message IDs — avoids N+1 and the full-table fetch
+        List<Integer> pageIds = messages.getContent().stream().map(ChatMessage::getId).collect(Collectors.toList());
+        Map<Integer, ChatMessage> hydratedById = pageIds.isEmpty()
+                ? java.util.Collections.emptyMap()
+                : chatMessageRepository.findByIdsWithAttachments(pageIds).stream()
+                        .collect(Collectors.toMap(ChatMessage::getId, m -> m));
+
+        // Map to DTOs — use hydrated entity (with attachments) when available
+        return messages.map(msg -> {
+            ChatMessage message = hydratedById.getOrDefault(msg.getId(), msg);
             MessageResponseDTO dto = new MessageResponseDTO();
             try {
                 dto.setId(message.getId());
@@ -496,8 +507,9 @@ public class ConversationServiceImpl implements ConversationService {
             messagingTemplate.convertAndSend("/topic/messages-" + chatId, messageDto);
         }
         
-        // This part is for the reader's UI, to update their unread count in the sidebar. It's still useful.
-        messagingTemplate.convertAndSendToUser(phone, "/queue/read", Map.of("chatId", chatId, "unreadCount", 0));
+        // Notify the reader's sidebar: unread count is now 0. Must match the frontend subscription path.
+        messagingTemplate.convertAndSendToUser(phone, "/queue/read-receipt",
+                Map.of("chatId", chatId, "unreadCount", 0));
     }   
 
     @Override

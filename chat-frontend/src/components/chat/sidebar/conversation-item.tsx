@@ -83,9 +83,16 @@ export function ConversationItem({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-foreground truncate">
-            {conversation.name}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-semibold text-foreground truncate">
+              {conversation.name}
+            </span>
+            {conversation.chatType === "GROUP" && conversation.participants?.length > 0 && (
+              <span className="text-[10px] text-muted-foreground/70 shrink-0 font-normal">
+                ({conversation.participants.length})
+              </span>
+            )}
+          </div>
           <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
             {formatTimestamp(conversation.timestamp)}
           </span>
@@ -99,9 +106,14 @@ export function ConversationItem({
                 : "text-muted-foreground"
             )}
           >
-            {lastMessage}
+            {lastMessage || (conversation.chatType === "GROUP"
+              ? `${conversation.participants?.length ?? 0} members`
+              : "No messages yet")}
           </p>
           <div className="flex items-center gap-1.5 shrink-0">
+            {conversation.chatType === "GROUP" && conversation.participants?.length > 0 && !lastMessage && (
+              <span className="text-[10px] text-muted-foreground/60 shrink-0" />
+            )}
             {badgeLabel && (
               <span
                 className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-destructive text-white text-[10px] font-bold leading-none"

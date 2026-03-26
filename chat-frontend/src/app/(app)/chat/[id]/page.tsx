@@ -74,6 +74,7 @@ export default function ChatPage() {
     return () => setActiveConversation(null);
   }, [conversationId, setActiveConversation]);
 
+  // Mark as read when first entering the chat
   useEffect(() => {
     if (conversationId && isConnected) {
       markRead(conversationId);
@@ -84,6 +85,21 @@ export default function ChatPage() {
       );
     }
   }, [conversationId, isConnected, markRead, clearUnread, queryClient]);
+
+  // Mark as read when NEW messages arrive while the chat is already open (recipient path).
+  // The backend broadcasts each message back as read:true, which auto-updates blue ticks
+  // for the sender. We also optimistically zero the badge here to avoid flicker.
+  const totalMessages = messagesData?.pages.reduce((acc, p) => acc + p.content.length, 0) ?? 0;
+  useEffect(() => {
+    if (conversationId && isConnected && totalMessages > 0) {
+      markRead(conversationId);
+      clearUnread(conversationId);
+      queryClient.setQueryData<import("@/types").Conversation[]>(["conversations"], (old = []) =>
+        old.map((c) => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalMessages]);
 
   useEffect(() => {
     if (!isAuthenticated()) router.push("/login");

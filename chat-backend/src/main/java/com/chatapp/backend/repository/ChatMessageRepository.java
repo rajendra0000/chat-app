@@ -25,8 +25,22 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Intege
 
     List<ChatMessage> findByChatMember_ChatAndChatMember_UserIdNotAndReadFalse(Chat chat, Integer userId);
 
-    @EntityGraph(attributePaths = {"attachments", "attachments.document"}, type = EntityGraph.EntityGraphType.LOAD)
+    /**
+     * Paginated query WITHOUT @EntityGraph to avoid HHH90003004.
+     * Hibernate must not JOIN FETCH collections when pagination is active — it would
+     * load all rows into memory. Use findByIdsWithAttachments() as a second query
+     * to batch-load attachments for only the current page's message IDs.
+     */
     Page<ChatMessage> findByChatMember_Chat_IdOrderByCreatedAtDesc(Integer chatId, Pageable pageable);
+
+    /**
+     * Batch-loads attachments (and their documents) for a specific set of message IDs.
+     * Call this AFTER pagination to hydrate only the current page — avoids the N+1 and
+     * the full-table-fetch that @EntityGraph + pagination causes.
+     */
+    @EntityGraph(attributePaths = {"attachments", "attachments.document"}, type = EntityGraph.EntityGraphType.LOAD)
+    @Query("SELECT m FROM ChatMessage m WHERE m.id IN :ids")
+    List<ChatMessage> findByIdsWithAttachments(@Param("ids") List<Integer> ids);
 
     Optional<ChatMessage> findByMessageUuid(String messageUuid);
 

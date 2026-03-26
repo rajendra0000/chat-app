@@ -60,12 +60,19 @@ export function useCreateConversation() {
 
 export function useCreateGroup() {
   const queryClient = useQueryClient();
+  const upsertConversation = useChatStore((s) => s.upsertConversation);
 
   return useMutation({
     mutationFn: ({ title, memberIds }: { title: string; memberIds?: number[] }) =>
       conversationService.createGroup(title, memberIds),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
+    onSuccess: (newGroup) => {
+      // 1. Inject straight into TQ cache so sidebar re-renders immediately
+      queryClient.setQueryData<Conversation[]>(CONVERSATIONS_KEY, (old = []) => {
+        if (old.some((c) => c.id === newGroup.id)) return old;
+        return [newGroup, ...old];
+      });
+      // 2. Sync to Zustand so WS handlers can reference it
+      upsertConversation(newGroup);
     },
   });
 }

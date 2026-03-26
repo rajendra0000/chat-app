@@ -45,6 +45,7 @@ public ConversationDTO createGroup(String title, List<Integer> memberIds) {
     Chat chat = new Chat();
     chat.setTitle(title);
     chat.setChatType(ChatType.GROUP);
+    chat.setInitiatedBy(creator.getId()); // Record who created this group
     Chat savedChat = chatRepository.save(chat);
 
     // Add the creator as an ADMIN

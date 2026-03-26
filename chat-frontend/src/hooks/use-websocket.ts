@@ -226,12 +226,20 @@ export function useWebSocket() {
       });
       unsubs.push(() => notifSub.unsubscribe());
 
-      // 3. Read receipts
+      // 3. Read receipts — handles both bulk markRead (chatId+unreadCount) and per-message SEEN events
       const readSub = client.subscribe("/user/queue/read-receipt", (frame: IMessage) => {
         try {
           const receipt: WsReadReceipt = JSON.parse(frame.body);
-          setUnreadCount(receipt.chatId, receipt.unreadCount);
-          updateConversation(receipt.chatId, { unreadCount: receipt.unreadCount });
+          if (receipt.chatId != null && receipt.unreadCount != null) {
+            setUnreadCount(receipt.chatId, receipt.unreadCount);
+            updateConversation(receipt.chatId, { unreadCount: receipt.unreadCount });
+            // Sync TQ cache so sidebar badge clears immediately without a round-trip
+            queryClient.setQueryData<import("@/types").Conversation[]>(["conversations"], (old = []) =>
+              old.map((c) =>
+                c.id === receipt.chatId ? { ...c, unreadCount: receipt.unreadCount } : c
+              )
+            );
+          }
         } catch (e) {
           console.error("Failed to parse read receipt:", e);
         }

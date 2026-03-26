@@ -43,7 +43,11 @@ public class UserServiceImpl implements UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone number must be at least 3 digits");
         }
 
+        // Normalize: allow search with or without the leading '+' sign.
+        // Try the number as-is first, then the alternate form (with/without '+').
+        String alternate = phone.startsWith("+") ? phone.substring(1) : "+" + phone;
         return userRepository.findByPhone(phone)
+                .or(() -> userRepository.findByPhone(alternate))
                 .map(UserMapper::mapToDto)
                 .orElse(null);
     }

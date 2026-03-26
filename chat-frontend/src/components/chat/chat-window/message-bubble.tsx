@@ -1,14 +1,15 @@
 "use client";
 
 // ==============================
-// Message Bubble — + reactions, reply-quote, pin, last-seen ticks
+// Message Bubble — + reactions, reply-quote, pin/unpin, last-seen ticks
+// Mobile: long-press (300ms) reveals action bar
 // ==============================
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import {
   Pencil, Trash2, Check, X, FileText, Download, CheckCheck, Bot,
-  SmilePlus, Reply, Pin, MoreHorizontal,
+  SmilePlus, Reply, Pin, PinOff,
 } from "lucide-react";
 import { editMessage, deleteMessage, reactToMessage, pinMessage } from "@/services/message-service";
 import { useUpdateMessageInCache } from "@/hooks/use-messages";
@@ -25,6 +26,7 @@ interface MessageBubbleProps {
 }
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+const LONG_PRESS_DURATION = 300; // ms
 
 function formatTime(isoString: string): string {
   const date = new Date(isoString);
@@ -113,8 +115,30 @@ export function MessageBubble({
   const [editText, setEditText] = useState(message.text);
   const [isActing, setIsActing] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  // showActions: true = hover bar is forced visible (mobile long-press)
+  const [showActions, setShowActions] = useState(false);
   const updateMessageInCache = useUpdateMessageInCache();
+
+  // ── Long-press detection (mobile) ─────────────────────────────────────────
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTouchStart = useCallback(() => {
+    longPressTimerRef.current = setTimeout(() => {
+      setShowActions(true);
+    }, LONG_PRESS_DURATION);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  // Close action bar when tapping outside
+  const handleBubbleClick = useCallback(() => {
+    if (showActions) setShowActions(false);
+  }, [showActions]);
 
   const isAI = message.senderName === "Kalori" || message.senderName === "AI" || message.senderName === "AI Assistant";
   const isPending = typeof message.id === "string" && (message.id as string).startsWith("pending-");
@@ -145,25 +169,23 @@ export function MessageBubble({
   const handleReact = async (emoji: string) => {
     setShowReactionPicker(false);
     try {
-      // Optimistically apply the one-per-user model:
-      // Find which emoji (if any) this user currently has on the message.
-      // Since we don't track per-user reactions on the client, we do a best-effort
-      // update and let the server's REACTION_UPDATE WS event reconcile the counts.
-      const prev = { ...(message.reactions || {}) };
-      // We can't know which emoji the user previously had, so just call the API
-      // and let the real-time WS update correct the UI.
       await reactToMessage(message.id as number, emoji);
-      // The server broadcasts REACTION_UPDATE which will set the authoritative counts.
+      // Server broadcasts REACTION_UPDATE which reconciles counts in real-time
     } catch { toast.error("Failed to react."); }
   };
 
-  const handlePin = async () => {
-    setShowMenu(false);
+  // ── Pin / Unpin toggle ─────────────────────────────────────────────────────
+  // The backend endpoint (PATCH /api/messages/{id}/pin) already toggles the pin
+  // state and broadcasts a PIN_TOGGLED WS event. We just need to call it and
+  // locally pre-update the cache so the UI feels instant.
+  const handleTogglePin = async () => {
+    setShowActions(false);
+    const wasAlreadyPinned = Boolean(message.pinned);
     try {
       await pinMessage(message.id as number);
-      updateMessageInCache(conversationId, message.id, { pinned: true });
-      toast.success("Message pinned.");
-    } catch { toast.error("Failed to pin message."); }
+      updateMessageInCache(conversationId, message.id, { pinned: !wasAlreadyPinned });
+      toast.success(wasAlreadyPinned ? "Message unpinned." : "Message pinned.");
+    } catch { toast.error("Failed to toggle pin."); }
   };
 
   // Deleted message
@@ -197,7 +219,13 @@ export function MessageBubble({
   }
 
   return (
-    <div className={cn("group flex mb-1.5 relative", isMine ? "justify-end" : "justify-start", isPending && "opacity-60")}>
+    <div
+      className={cn("group flex mb-1.5 relative", isMine ? "justify-end" : "justify-start", isPending && "opacity-60")}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onClick={handleBubbleClick}
+    >
 
       {/* Pinned banner */}
       {message.pinned && (
@@ -306,17 +334,21 @@ export function MessageBubble({
           </>
         )}
 
-        {/* Hover action bar */}
+        {/* Action bar — shown on desktop :hover OR mobile long-press */}
         {!isEditing && !isPending && (
           <div className={cn(
-            "absolute -top-8 flex gap-0.5 bg-card border border-border rounded-xl shadow-lg px-1 py-0.5",
-            "opacity-0 group-hover:opacity-100 transition-opacity",
+            "absolute -top-8 flex gap-0.5 bg-card border border-border rounded-xl shadow-lg px-1 py-0.5 z-10",
+            // Desktop: opacity-0 until group-hover; Mobile: controlled by showActions state
+            showActions
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100",
+            "transition-opacity",
             isMine ? "right-0" : "left-0"
           )}>
             {/* React */}
             <div className="relative">
               <button
-                onClick={() => setShowReactionPicker((v) => !v)}
+                onClick={(e) => { e.stopPropagation(); setShowReactionPicker((v) => !v); }}
                 className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                 title="React"
               >
@@ -325,7 +357,7 @@ export function MessageBubble({
               {showReactionPicker && (
                 <div className="absolute bottom-full mb-1 left-0 flex gap-1 bg-card border border-border rounded-xl shadow-xl p-1.5 z-50">
                   {QUICK_REACTIONS.map((emoji) => (
-                    <button key={emoji} onClick={() => handleReact(emoji)} className="text-base hover:scale-125 transition-transform cursor-pointer p-0.5">
+                    <button key={emoji} onClick={(e) => { e.stopPropagation(); handleReact(emoji); }} className="text-base hover:scale-125 transition-transform cursor-pointer p-0.5">
                       {emoji}
                     </button>
                   ))}
@@ -335,23 +367,34 @@ export function MessageBubble({
 
             {/* Reply */}
             {onReply && (
-              <button onClick={() => onReply(message)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer" title="Reply">
+              <button onClick={(e) => { e.stopPropagation(); onReply(message); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer" title="Reply">
                 <Reply className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
             )}
 
-            {/* Pin */}
-            <button onClick={handlePin} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer" title="Pin">
-              <Pin className="w-3.5 h-3.5 text-muted-foreground" />
+            {/* Pin / Unpin — icon and colour reflect current state */}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleTogglePin(); }}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors cursor-pointer",
+                message.pinned ? "hover:bg-accent/10" : "hover:bg-muted"
+              )}
+              title={message.pinned ? "Unpin" : "Pin"}
+            >
+              {message.pinned ? (
+                <PinOff className="w-3.5 h-3.5 text-accent" />
+              ) : (
+                <Pin className="w-3.5 h-3.5 text-muted-foreground" />
+              )}
             </button>
 
             {/* Edit + Delete (own messages only) */}
             {isMine && (
               <>
-                <button onClick={() => setIsEditing(true)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer" title="Edit">
+                <button onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer" title="Edit">
                   <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
-                <button onClick={handleDelete} disabled={isActing} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer" title="Delete">
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(); }} disabled={isActing} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer" title="Delete">
                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
                 </button>
               </>

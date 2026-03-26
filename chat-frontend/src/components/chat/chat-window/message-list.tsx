@@ -167,6 +167,7 @@ export function MessageList({ conversationId, onImageClick }: MessageListProps) 
               message={item.message}
               isMine={item.message.senderId === userId}
               conversationId={conversationId}
+              isRead={item.message.read ?? false}
               onImageClick={onImageClick}
               onReply={setReplyTo}
             />
