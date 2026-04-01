@@ -32,7 +32,7 @@ export function ChatHeader({ conversation, avatarUrl, isConnected, typingText, o
   const statusText = typingText
     ? typingText
     : isGroup
-    ? `${conversation.participants.length} members`
+    ? `${conversation.participants?.length ?? 0} members`
     : isOnline
     ? "Online"
     : conversation.status

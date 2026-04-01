@@ -12,10 +12,12 @@ export interface Conversation {
   timestamp: string | null;
   unreadCount: number;
   deleted: boolean;
-  participants: number[];
+  participants: number[] | null;
   blockedByCurrentUser: boolean;
   currentUserBlocked: boolean;
   status: string | null;
+  /** Profile picture URL — other user's pic for PRIVATE, group pic for GROUP */
+  avatarUrl?: string | null;
 }
 
 export interface CreateConversationRequest {

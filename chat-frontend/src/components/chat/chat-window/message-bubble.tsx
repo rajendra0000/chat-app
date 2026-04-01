@@ -273,9 +273,9 @@ export function MessageBubble({
         ) : (
           <>
             {/* File attachments */}
-            {message.documents && message.documents.length > 0 && (
+            {(message.documents?.length ?? 0) > 0 && (
               <div className="mb-2 space-y-1.5">
-                {message.documents.map((doc) => {
+                {(message.documents ?? []).map((doc) => {
                   const url = doc.url;
                   const isImage = doc.fileType?.startsWith("image/");
                   const isAudio = doc.fileType?.startsWith("audio/");
@@ -303,7 +303,7 @@ export function MessageBubble({
             {/* Reaction bubbles */}
             {message.reactions && Object.keys(message.reactions).length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1.5">
-                {(Object.entries(message.reactions) as [string, number][]).map(([emoji, count]) => (
+                {(Object.entries(message.reactions ?? {}) as [string, number][]).map(([emoji, count]) => (
                   <button
                     key={emoji}
                     onClick={() => handleReact(emoji)}

@@ -7,10 +7,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.HtmlUtils;
 
 import com.chatapp.backend.dto.ChatMessageDto;
@@ -286,7 +288,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         User user = userRepository.findByPhone(userPhone)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         if (chatMemberRepository.findByChat_IdAndUser_Id(chatId, user.getId()) == null) {
-            throw new SecurityException("You are not a member of this chat");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a member of this chat");
         }
 
         boolean newState = !message.isPinned();

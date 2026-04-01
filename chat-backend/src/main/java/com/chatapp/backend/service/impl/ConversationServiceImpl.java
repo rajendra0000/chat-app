@@ -149,14 +149,32 @@ public class ConversationServiceImpl implements ConversationService {
             if (ChatType.GROUP.equals(chat.getChatType())) {
                 dto.setChatType("GROUP");
                 dto.setName(chat.getTitle() != null ? chat.getTitle() : "Unnamed Group");
+                // Resolve group profile picture
+                if (chat.getProfilePicId() != null) {
+                    try {
+                        dto.setAvatarUrl(fileStorageService.getPresignedUrl(chat.getProfilePicId()));
+                    } catch (Exception e) {
+                        logger.warn("Failed to resolve group avatar for chat {}: {}", chat.getId(), e.getMessage());
+                    }
+                }
             } else { // Assume PRIVATE
                 dto.setChatType("PRIVATE");
                 if (!otherMembers.isEmpty()) {
+                    ChatMember otherMember = otherMembers.get(0);
                     dto.setName(otherUserName);
                     dto.setStatus(otherUserStatus);
-                    dto.setBlockedByCurrentUser(otherMembers.stream().findFirst().orElse(null).isBlocked());
+                    dto.setBlockedByCurrentUser(otherMember.isBlocked());
                     dto.setCurrentUserBlocked(member.isBlocked());
                     logger.debug("isBlockedByCurrentUser: {}, isCurrentUserBlocked: {}", dto.isBlockedByCurrentUser(), dto.isCurrentUserBlocked());
+                    // Resolve other user's profile picture
+                    Integer picId = otherMember.getUser().getProfilePicId();
+                    if (picId != null) {
+                        try {
+                            dto.setAvatarUrl(fileStorageService.getPresignedUrl(picId));
+                        } catch (Exception e) {
+                            logger.warn("Failed to resolve avatar for user {} in chat {}: {}", otherMember.getUser().getId(), chat.getId(), e.getMessage());
+                        }
+                    }
                 } else {
                     dto.setName("Unknown");
                     dto.setStatus("active");
@@ -444,7 +462,7 @@ public class ConversationServiceImpl implements ConversationService {
                     Map.of("chatId", chat.getId(),
                         "unreadCount", unreadCount,
                         "latestMessage", latestMessage.getContent(),
-                        "timestamp", latestMessage.getCreatedAt())
+                        "timestamp", latestMessage.getCreatedAt().toInstant().toString())
                 );
            // }
         }

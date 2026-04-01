@@ -46,7 +46,7 @@ export function NewChatDialog({ open, onOpenChange, conversations }: NewChatDial
   const handleSelectUser = async (userId: number) => {
     // Check if conversation already exists
     const existing = conversations.find(
-      (c) => c.chatType === "PRIVATE" && c.participants.includes(userId)
+      (c) => c.chatType === "PRIVATE" && (c.participants ?? []).includes(userId)
     );
 
     if (existing) {

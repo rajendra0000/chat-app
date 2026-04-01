@@ -86,8 +86,11 @@ public class ChatMemberServiceImpl implements ChatMemberService {
         if (!"ADMIN".equals(adminMember.getRole())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can add members");
         }
+        // Normalize phone: try as-is, then with/without leading '+'
+        String phoneAlt = phone.startsWith("+") ? phone.substring(1) : "+" + phone;
         User newUser = userRepository.findByPhone(phone)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .or(() -> userRepository.findByPhone(phoneAlt))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with phone: " + phone));
         if (Optional.ofNullable(chatMemberRepository.findByChat_IdAndUser_Id(chatId, newUser.getId())).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "User already in group");
         }

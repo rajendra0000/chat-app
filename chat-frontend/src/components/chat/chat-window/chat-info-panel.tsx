@@ -144,7 +144,7 @@ export function ChatInfoPanel({
     if (!currentUserId) return;
     setIsBlocking(true);
     try {
-      const targetUserId = conversation.participants.find((id) => id !== currentUserId);
+      const targetUserId = (conversation.participants ?? []).find((id) => id !== currentUserId);
       if (!targetUserId) return;
       if (conversation.blockedByCurrentUser) {
         await unblockUser(conversation.id, targetUserId);
@@ -225,7 +225,7 @@ export function ChatInfoPanel({
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isGroup ? `${conversation.participants.length} members` : conversation.status || ""}
+                {isGroup ? `${conversation.participants?.length ?? 0} members` : conversation.status || ""}
               </p>
             </div>
 

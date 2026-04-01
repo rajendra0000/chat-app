@@ -17,4 +17,5 @@ public class ConversationDTO {
     private boolean isBlockedByCurrentUser; // Is the other user blocked by me?
     private boolean isCurrentUserBlocked; // Am I blocked by the other user?
     private List<Integer> participants; // List of user IDs in the conversation
+    private String avatarUrl; // Profile picture URL: other user's pic (PRIVATE) or group pic (GROUP)
 }

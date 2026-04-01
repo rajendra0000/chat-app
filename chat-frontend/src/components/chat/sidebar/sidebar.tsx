@@ -243,6 +243,7 @@ export function Sidebar() {
                   key={conversation.id}
                   conversation={conversation}
                   isActive={activeConversationId === conversation.id}
+                  avatarUrl={conversation.avatarUrl || undefined}
                   onSelect={handleSelectConversation}
                   onDelete={conversation.chatType === "PRIVATE" ? handleDelete : undefined}
                   onLeave={conversation.chatType === "GROUP" ? handleLeave : undefined}

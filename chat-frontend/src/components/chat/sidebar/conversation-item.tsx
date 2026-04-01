@@ -87,9 +87,9 @@ export function ConversationItem({
             <span className="text-sm font-semibold text-foreground truncate">
               {conversation.name}
             </span>
-            {conversation.chatType === "GROUP" && conversation.participants?.length > 0 && (
+            {conversation.chatType === "GROUP" && (conversation.participants?.length ?? 0) > 0 && (
               <span className="text-[10px] text-muted-foreground/70 shrink-0 font-normal">
-                ({conversation.participants.length})
+                ({conversation.participants!.length})
               </span>
             )}
           </div>
@@ -111,7 +111,7 @@ export function ConversationItem({
               : "No messages yet")}
           </p>
           <div className="flex items-center gap-1.5 shrink-0">
-            {conversation.chatType === "GROUP" && conversation.participants?.length > 0 && !lastMessage && (
+            {conversation.chatType === "GROUP" && (conversation.participants?.length ?? 0) > 0 && !lastMessage && (
               <span className="text-[10px] text-muted-foreground/60 shrink-0" />
             )}
             {badgeLabel && (
